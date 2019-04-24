@@ -1,0 +1,21 @@
+sudo: false
+language: python
+
+python:
+  - "3.6"
+
+before_install:
+  - pip install --quiet "pip>=19.0"
+  - pip install --quiet tox coveralls
+
+script:
+  - tox -- --cov=wait_travis
+
+after_success:
+  # Strip off ".tox/..." from the coverage
+  # (see also [[./tox.ini::coverage:paths]]):
+  - .tox/py*/bin/coverage combine .coverage
+  - coveralls
+
+notifications:
+  email: false
