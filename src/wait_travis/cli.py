@@ -15,7 +15,14 @@ click_log.basic_config(root_logger)
 logger = getLogger(__name__)
 
 
-def wait_build(api, buildid, interval: float, limit: int):
+def make_sleeper(interval: float):
+    def sleep():
+        time.sleep(interval)
+
+    return sleep
+
+
+def wait_build_impl(api, buildid, sleep, limit: int):
     if limit < 0:
         counter = itertools.count()
         den = ""
@@ -31,8 +38,12 @@ def wait_build(api, buildid, interval: float, limit: int):
             logger.debug("%s", pprint.pformat(build))
         if build["state"] in ("passed", "failed"):
             break
-        time.sleep(interval)
+        sleep()
     return build
+
+
+def wait_build(api, buildid, interval: float, limit: int):
+    return wait_build_impl(api, buildid, make_sleeper(interval), limit)
 
 
 @click.command()
