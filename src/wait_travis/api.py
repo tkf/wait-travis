@@ -6,6 +6,10 @@ import requests
 TOKENS = {}
 
 
+class APIError(ValueError):
+    pass
+
+
 def get_token(endpoint):
     try:
         return TOKENS[endpoint]
@@ -57,7 +61,16 @@ class TravisAPI:
         return requests.get(url, headers=headers)
 
     def get(self, *path, **kwargs):
-        return self.get_response(*path, **kwargs).json()
+        result = self.get_response(*path, **kwargs).json()
+        if result.get("@type", "error") == "error":
+            raise APIError(result)
+        return result
+
+    def weburl(self):
+        return "https://" + self.endpoint[len("https://api.") :]
+
+    def weburl_build(self, repository, buildid):
+        return "/".join([self.weburl(), repository, "builds", buildid])
 
 
 def travis_build_id(url):
