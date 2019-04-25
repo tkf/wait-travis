@@ -10,7 +10,8 @@ from click import ClickException
 
 from . import __name__ as root_name
 from .api import APIError, TravisAPI, build_duration, travis_build_id
-from .githubutils import git_revision, guess_repository
+from .githubutils import guess_repository
+from .matchers import make_matcher
 
 root_logger = getLogger(root_name)
 click_log.basic_config(root_logger)
@@ -118,6 +119,15 @@ def show_matched_builds(builds):
 
     for build in builds:
         show_build(build)
+    if len(builds) > 1:
+        #     #82 (109539444) started
+        msg(r" \       \__ id (build id)")
+        msg(r"  \__ num")
+        msg()
+        msg(
+            "Use `pr:32`, `num:213`, `id:109539444`, `sha:b8027e6`, etc."
+            " to specify the build uniquely"
+        )
 
 
 def guess_unfinished_build(repository, matcher, api_candidates=None):
@@ -143,35 +153,6 @@ def guess_unfinished_build(repository, matcher, api_candidates=None):
             raise ClickException("No unfinished builds")
         else:
             raise ClickException("Multiple unfinished builds")
-
-
-def parse_pr_number(url):
-    if url.startswith("pr:"):
-        number = url[len("pr:") :]
-        if number.isnumeric():
-            return int(number)
-    return None
-
-
-def make_pr_number_matcher(url):
-    pr = parse_pr_number(url)
-    assert pr is not None
-    logger.info("Matching with PR: %s", pr)
-    return lambda build: build.get("pull_request_number", None) == pr
-
-
-def make_sha_matcher(sha):
-    logger.info("Matching with commit: %s", sha)
-    return lambda build: build["commit"]["sha"] == sha
-
-
-def make_matcher(url):
-    if not url:
-        return lambda _: True
-    elif parse_pr_number(url):
-        return make_pr_number_matcher(url)
-    else:
-        return make_sha_matcher(git_revision(url))
 
 
 @click.command()
