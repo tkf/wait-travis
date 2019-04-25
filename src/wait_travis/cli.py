@@ -157,23 +157,42 @@ def guess_unfinished_build(repository, matcher, api_candidates=None):
 
 @click.command()
 @click_log.simple_verbosity_option(root_logger, "--log-level", "--verbosity")
-@click.option("--interval", default=30.0)
-@click.option("--limit", default=200)
-@click.option("--browse/--no-browse")
-@click.argument("url", required=False)
+@click.option("--interval", default=30.0, help="Polling interval in seconds.")
+@click.option("--limit", default=200, help="Maximum number of polling.")
+@click.option(
+    "--browse/--no-browse",
+    help=(
+        "Open Travis CI web interface in the browser."
+        " It is ignored when the URL is given explicitly."
+    ),
+)
+@click.argument("buildspec", required=False, metavar="[BUILD]")
 @click.pass_context
-def main(ctx, url, browse, **kwargs):
+def main(ctx, buildspec, browse, **kwargs):
     """
-    Wait a success build running in Travis CI.
+    Wait for a BUILD running in Travis CI.
+
+    A BUILD can be specified by:
+
+    \b
+        https://travis-ci.com/{user}/{project}/builds/{build_id}
+        https://travis-ci.org/{user}/{project}/builds/{build_id}
+        id:{build_id}
+        num:{build_number}
+        sha:{git_revision}
+        pr:{pull_request_number}
+
+    This program aborts if zero or more than one unfinished builds
+    matching the BUILD specifier are found.
     """
 
-    if url and url.startswith("https://travis-ci."):
-        api = TravisAPI.from_url(url)
-        buildid = travis_build_id(url)
+    if buildspec and buildspec.startswith("https://travis-ci."):
+        api = TravisAPI.from_url(buildspec)
+        buildid = travis_build_id(buildspec)
     else:
         repository = guess_repository()
         logger.info("Repository found: %s", repository)
-        api, buildid = guess_unfinished_build(repository, make_matcher(url))
+        api, buildid = guess_unfinished_build(repository, make_matcher(buildspec))
 
         weburl = api.weburl_build(repository, buildid)
         click.echo(f"URL: {weburl}", err=True)
