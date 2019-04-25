@@ -22,18 +22,19 @@ def msg(*args, **kwargs):
     click.secho(*args, err=True, **kwargs)
 
 
-KNOWN_STATES = ("started", "passed", "failed", "canceled", "errored")
+KNOWN_STATES = ("created", "started", "passed", "failed", "canceled", "errored")
 
 
 def is_finished(build):
     # Sanity check
     if build["state"] not in KNOWN_STATES:
         logger.warn("Unknown state: %s", build["state"])
-    return build["state"] != "started"
+    return build["state"] not in ("created", "started")
 
 
 def style_from_build(build):
     fg = {
+        "created": "cyan",
         "started": "yellow",
         "passed": "green",
         "failed": "red",
