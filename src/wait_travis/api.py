@@ -1,4 +1,5 @@
 import subprocess
+from datetime import datetime
 from urllib.parse import urlparse
 
 import requests
@@ -79,3 +80,9 @@ def travis_build_id(url):
     assert p0 == ""
     assert builds == "builds"
     return buildid
+
+
+def build_duration(build):
+    started_at = datetime.fromisoformat(build["started_at"].rstrip("Z"))
+    now = datetime.utcnow()
+    return now - started_at

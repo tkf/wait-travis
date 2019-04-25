@@ -9,13 +9,17 @@ import click_log
 from click import ClickException
 
 from . import __name__ as root_name
-from .api import APIError, TravisAPI, travis_build_id
+from .api import APIError, TravisAPI, build_duration, travis_build_id
 from .githubutils import git_revision, guess_repository
 
 root_logger = getLogger(root_name)
 click_log.basic_config(root_logger)
 
 logger = getLogger(__name__)
+
+
+def msg(*args, **kwargs):
+    click.secho(*args, err=True, **kwargs)
 
 
 KNOWN_STATES = ("started", "passed", "failed", "canceled", "errored")
@@ -26,6 +30,17 @@ def is_finished(build):
     if build["state"] not in KNOWN_STATES:
         logger.warn("Unknown state: %s", build["state"])
     return build["state"] != "started"
+
+
+def style_from_build(build):
+    fg = {
+        "started": "yellow",
+        "passed": "green",
+        "failed": "red",
+        "canceled": "red",
+        "errored": "red",
+    }.get(build["state"])
+    return dict(fg=fg)
 
 
 def make_sleeper(interval: float):
@@ -73,12 +88,41 @@ def find_unfinished_builds(api, repository):
     return [build for build in result["builds"] if not is_finished(build)]
 
 
-def guess_unfinished_build(matcher, browse, api_candidates=None):
+def show_build(build):
+    msg(f"#{build['number']} ({build['id']}) ", nl=False)
+    if build["state"] == "started":
+        duration = build_duration(build).total_seconds() / 60
+        msg(f"started {duration:.0f} min ago", **style_from_build(build), nl=False)
+    else:
+        msg(build["state"], **style_from_build(build), nl=False)
+    if build.get("pull_request_title"):
+        msg(": PR: ", nl=False)
+        msg(build["pull_request_number"], fg="magenta", nl=False)
+        msg(" ", nl=False)
+        msg(build["pull_request_title"])
+    else:
+        branch = build["branch"]["name"]
+        sha = build["commit"]["sha"][:7]
+        title = build["commit"]["message"].split("\n", 1)[0].strip()
+        msg(": ", nl=False)
+        msg(f"{branch} ({sha})", fg="magenta", nl=False)
+        msg(f" {title}")
+
+
+def show_matched_builds(builds):
+    if len(builds) == 1:
+        msg("Found one matched build.", fg="green")
+    else:
+        msg(f"Found {len(builds)} matched builds.", fg="red")
+
+    for build in builds:
+        show_build(build)
+
+
+def guess_unfinished_build(repository, matcher, api_candidates=None):
     if api_candidates is None:
         api_candidates = [TravisAPI.com(), TravisAPI.org()]
 
-    repository = guess_repository()
-    logger.info("Repository found: %s", repository)
     for api in api_candidates:
         logger.info("Trying API at: %s", api.endpoint)
 
@@ -88,20 +132,12 @@ def guess_unfinished_build(matcher, browse, api_candidates=None):
             continue
 
         builds = list(filter(matcher, builds))
+        show_matched_builds(builds)
 
         if len(builds) == 1:
-            click.echo(f"Unfinished build found", err=True)
-
-            rawbuildid = builds[0]["id"]
-            assert isinstance(rawbuildid, int)
-            buildid = str(rawbuildid)
-
-            weburl = api.weburl_build(repository, buildid)
-            click.echo(f"URL: {weburl}", err=True)
-            if browse:
-                click.launch(weburl)
-
-            return api, buildid
+            buildid = builds[0]["id"]
+            assert isinstance(buildid, int)
+            return api, str(buildid)
         elif len(builds) == 0:
             raise ClickException("No unfinished builds")
         else:
@@ -153,7 +189,14 @@ def main(ctx, url, browse, **kwargs):
         api = TravisAPI.from_url(url)
         buildid = travis_build_id(url)
     else:
-        api, buildid = guess_unfinished_build(make_matcher(url), browse)
+        repository = guess_repository()
+        logger.info("Repository found: %s", repository)
+        api, buildid = guess_unfinished_build(repository, make_matcher(url))
+
+        weburl = api.weburl_build(repository, buildid)
+        click.echo(f"URL: {weburl}", err=True)
+        if browse:
+            click.launch(weburl)
 
     build = wait_build(api, buildid, **kwargs)
 
