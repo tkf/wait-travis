@@ -61,14 +61,20 @@ def wait_build_impl(api, buildid, sleep, limit: int):
         den = "/{}".format(limit)
 
     for n in counter:
-        click.echo(f"Polling {n}{den}... ", nl=False, err=True)
+        logger.debug("Polling %s%s... ", n, den)
         build = api.get("build", buildid)
-        click.echo(f"state: {build['state']}", err=True)
+        logger.debug("state: %s", build["state"])
         if logger.isEnabledFor(DEBUG):
             logger.debug("%s", pprint.pformat(build))
+        else:
+            msg(".", **style_from_build(build), nl=False)
         if is_finished(build):
             break
         sleep()
+
+    msg()
+    msg("state: ", nl=False)
+    msg(str(build["state"]), **style_from_build(build))
     return build
 
 
