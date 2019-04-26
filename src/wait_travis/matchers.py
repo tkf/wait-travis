@@ -19,7 +19,7 @@ class BasePrefixedNumberMatcher:
         num = cls.parse(url)
         assert num is not None
         logger.info(cls.message_format, num)
-        return lambda build: int(build.get(cls.key, None)) == num
+        return lambda build: bool(build.get(cls.key)) and int(build[cls.key]) == num
         # `int` for `build["number"]`
 
 
@@ -55,6 +55,9 @@ def make_matcher(url):
     True
     >>> f({"pull_request_number": 456})
     False
+    >>> f({"pull_request_number": None})
+    False
+
     >>> f = make_matcher("num:123")
     >>> f({"number": "123"})
     True

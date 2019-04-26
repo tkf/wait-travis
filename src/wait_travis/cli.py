@@ -99,7 +99,7 @@ def show_build(build):
         msg(build["state"], **style_from_build(build), nl=False)
     if build.get("pull_request_title"):
         msg(": PR: ", nl=False)
-        msg(build["pull_request_number"], fg="magenta", nl=False)
+        msg(str(build["pull_request_number"]), fg="magenta", nl=False)
         msg(" ", nl=False)
         msg(build["pull_request_title"])
     else:

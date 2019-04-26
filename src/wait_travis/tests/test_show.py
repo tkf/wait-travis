@@ -41,6 +41,22 @@ builds_examples = [
             "updated_at": "2019-04-25T02:59:17.313Z",
         },
         {
+            "id": 109539437,
+            "number": "81",
+            "state": "started",
+            "duration": None,
+            "pull_request_title": "Pull request title",
+            "pull_request_number": 192,
+            "started_at": pasttime.isoformat() + "Z",
+            "finished_at": None,
+            "branch": {"name": "master"},
+            "commit": {
+                "sha": "283e62683ea8f9428f4bf6e2f45ae9f46853ddf2",
+                "message": "Commit message title",
+            },
+            "updated_at": "2019-04-25T02:59:17.313Z",
+        },
+        {
             "id": 109384865,
             "number": "80",
             "state": "passed",
