@@ -136,6 +136,22 @@ def show_matched_builds(builds):
         )
 
 
+def guess_api(repository, api_candidates=None):
+    if api_candidates is None:
+        api_candidates = [TravisAPI.com(), TravisAPI.org()]
+
+    for api in api_candidates:
+        logger.info("Trying API at: %s", api.endpoint)
+
+        try:
+            # TODO: improve
+            slug = urllib.parse.quote(repository, safe="")
+            api.get("repo", slug, "builds")
+            return api
+        except APIError:
+            continue
+
+
 def guess_unfinished_build(repository, matcher, api_candidates=None):
     if api_candidates is None:
         api_candidates = [TravisAPI.com(), TravisAPI.org()]
@@ -199,7 +215,11 @@ def main(ctx, buildspec, browse, **kwargs):
     else:
         repository = guess_repository()
         logger.info("Repository found: %s", repository)
-        api, buildid = guess_unfinished_build(repository, make_matcher(buildspec))
+        if buildspec.startswith("id:"):
+            buildid = buildspec[len("id:") :]
+            api = guess_api(repository)
+        else:
+            api, buildid = guess_unfinished_build(repository, make_matcher(buildspec))
 
         weburl = api.weburl_build(repository, buildid)
         click.echo(f"URL: {weburl}", err=True)
