@@ -1,8 +1,9 @@
 sudo: false
 language: python
+dist: xenial  # required for Python >= 3.7
 
 python:
-  - "3.6"
+  - "3.7"
 
 before_install:
   - pip install --quiet "pip>=19.0"
