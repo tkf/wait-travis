@@ -41,6 +41,32 @@ class BuildIDMatcher(BasePrefixedNumberMatcher):
     message_format = "Matching with build ID: %s"
 
 
+class BranchMatcher:
+    prefix = "branch:"
+    message_format = "Matching with branch: %s"
+
+    @classmethod
+    def parse(cls, buildspec):
+        if buildspec.startswith(cls.prefix):
+            return buildspec[len(cls.prefix) :]
+        return None
+
+    @classmethod
+    def make_matcher(cls, buildspec):
+        branch = cls.parse(buildspec)
+        assert branch is not None
+        logger.info(cls.message_format, branch)
+
+        def matcher(build):
+            try:
+                actual = build["branch"]["name"]
+            except KeyError:
+                return False
+            return actual == branch
+
+        return matcher
+
+
 def make_sha_matcher(sha):
     logger.info("Matching with commit: %s", sha)
     return lambda build: build["commit"]["sha"] == sha
@@ -68,7 +94,7 @@ def make_matcher(url):
     if not url:
         return lambda _: True
 
-    for cls in [PRMatcher, BuildNumMatcher, BuildIDMatcher]:
+    for cls in [PRMatcher, BuildNumMatcher, BuildIDMatcher, BranchMatcher]:
         if cls.parse(url):
             return cls.make_matcher(url)
 

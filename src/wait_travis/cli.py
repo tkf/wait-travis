@@ -186,6 +186,7 @@ def main(ctx, buildspec, browse, **kwargs):
         id:{build_id}
         num:{build_number}
         sha:{git_revision}
+        branch:{branch_name}
         pr:{pull_request_number}
 
     This program aborts if zero or more than one unfinished builds
