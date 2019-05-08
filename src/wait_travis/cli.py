@@ -215,7 +215,7 @@ def main(ctx, buildspec, browse, **kwargs):
     else:
         repository = guess_repository()
         logger.info("Repository found: %s", repository)
-        if buildspec.startswith("id:"):
+        if buildspec and buildspec.startswith("id:"):
             buildid = buildspec[len("id:") :]
             api = guess_api(repository)
         else:
