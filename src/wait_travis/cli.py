@@ -171,10 +171,10 @@ def guess_unfinished_build(repository, matcher, api_candidates=None):
             buildid = builds[0]["id"]
             assert isinstance(buildid, int)
             return api, str(buildid)
-        elif len(builds) == 0:
-            raise ClickException("No unfinished builds")
-        else:
+        elif len(builds) > 1:
             raise ClickException("Multiple unfinished builds")
+
+    raise ClickException("No unfinished builds or Travis is not configured.")
 
 
 @click.command()
